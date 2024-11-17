@@ -2,6 +2,7 @@ import math
 
 import pygame
 import render
+import debug
 
 '''
 Minimal DOOM WAD renderer
@@ -102,11 +103,11 @@ def main():
         # and now render!
         t0 = pygame.time.get_ticks()
 
-        buf = render.render(map_, frame_count)
-        img = pygame.image.frombuffer(buf, (render.WIDTH, render.HEIGHT), 'P')
-        img.set_palette(palette)
-        surface.blit(img, (0, 0))
-        pygame.display.flip()
+        buf = debug.profile("render", lambda: render.render(map_, frame_count))
+        img = debug.profile("image.frombuffer", lambda: pygame.image.frombuffer(buf, (render.WIDTH, render.HEIGHT), 'P'))
+        debug.profile("img.set_palette", lambda: img.set_palette(palette))
+        debug.profile("surface.blip", lambda: surface.blit(img, (0, 0)))
+        debug.profile("display.flip", lambda: pygame.display.flip())
 
         clock.tick(60)
 
