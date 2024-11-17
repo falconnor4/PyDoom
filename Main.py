@@ -103,8 +103,6 @@ def main():
         # and now render!
         t0 = pygame.time.get_ticks()
 
-        print(f"t0 {t0}, frame_count {frame_count}")
-
         buf = debug.profile("render", lambda: render.render(map_, frame_count))
         img = debug.profile("image.frombuffer", lambda: pygame.image.frombuffer(buf, (render.WIDTH, render.HEIGHT), 'P'))
         debug.profile("img.set_palette", lambda: img.set_palette(palette))
@@ -112,8 +110,6 @@ def main():
         debug.profile("display.flip", lambda: pygame.display.flip())
 
         clock.tick(60)
-
-        print(f"tick delta {pygame.time.get_ticks()}")
 
         delta = (pygame.time.get_ticks() - t0)
         if frame_count % 10 == 0: #doesn't work with updated get_ticks
