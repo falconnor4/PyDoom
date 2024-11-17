@@ -233,8 +233,8 @@ def get_device_info(an_id):
                                                 input, output,
                                                 opened)
 
-    interf - a byte string describing the device interface, eg b'ALSA'.
-    name - a byte string for the name of the device, eg b'Midi Through Port-0'
+    interf - a text string describing the device interface, eg 'ALSA'.
+    name - a text string for the name of the device, eg 'Midi Through Port-0'
     input - 0, or 1 if the device is an input device.
     output - 0, or 1 if the device is an output device.
     opened - 0, or 1 if the device is opened.
@@ -501,7 +501,7 @@ class Output:
         Output.write_short(status)
         Output.write_short(status, data1 = 0, data2 = 0)
 
-        output MIDI information of 3 bytes or less.
+        output MIDI information of 3 bytes or fewer.
         data fields are optional
         status byte could be:
              0xc0 = program change
@@ -611,7 +611,7 @@ class Output:
 #
 #    0x80     Note Off    (note_off)
 #    0x90     Note On     (note_on)
-#    0xA0     Aftertouch
+#    0xA0     After-touch
 #    0xB0     Continuous controller
 #    0xC0     Patch change    (set_instrument?)
 #    0xD0     Channel Pressure

@@ -255,7 +255,6 @@ class BufferProxyTest(unittest.TestCase):
         self.assertEqual(r[:2], "*<")
         self.assertEqual(r[-2:], ">*")
 
-    @unittest.skipIf(not pygame.HAVE_NEWBUF, "newbuf not implemented")
     def NEWBUF_test_newbuf(self):
         from ctypes import string_at
 
@@ -309,7 +308,7 @@ class BufferProxyTest(unittest.TestCase):
             "shape": (10,),
             "strides": (1,),
             "data": (9, True),
-        }  # 9? Will not reading the data anyway.
+        }  # 9? Will not read the data anyway.
         b = BufferProxy(d)
         imp = Importer(b, buftools.PyBUF_SIMPLE)
         self.assertTrue(imp.obj is b)
