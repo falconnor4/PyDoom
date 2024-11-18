@@ -124,19 +124,15 @@ def onStep():
 
 def onKeyHold(keys):
     if "w" in keys:
-        print("w")
         newPlayerX = app.playerX + speed * math.cos(app.playerAngle)*0.1
         newPlayerY = app.playerY + speed * math.sin(app.playerAngle)*0.1
     if "s" in keys:
-        print("s")
         newPlayerX = app.playerX - speed * math.cos(app.playerAngle)*0.1
         newPlayerY = app.playerY - speed * math.sin(app.playerAngle)*0.1
     if "a" in keys:
-        print("a")
         newPlayerX = app.playerX + speed * math.sin(app.playerAngle)*0.1
         newPlayerY = app.playerY - speed * math.cos(app.playerAngle)*0.1
     if "d" in keys:
-        print("d")
         newPlayerX = app.playerX - speed * math.sin(app.playerAngle)*0.1
         newPlayerY = app.playerY + speed * math.cos(app.playerAngle)*0.1
         

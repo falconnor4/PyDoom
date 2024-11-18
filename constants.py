@@ -1,6 +1,6 @@
 from enum import Enum
-import utils
 import enemy
+import utils
 
 ADJACENT_OFFSETS = [
     (-1, 0),
@@ -52,6 +52,5 @@ MAP = [
     [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
     [PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL],
 ]
-ENEMY_MAP = {
-    utils.pack(1, 1): enemy.Enemy(),
-}
+ENEMY_MAP = {}
+# ENEMY_MAP[utils.pack((1, 1))] = enemy.Enemy()
