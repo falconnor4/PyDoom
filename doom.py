@@ -1,7 +1,6 @@
 import math
 import time
 from cmu_graphics import *
-import cmu_graphics
 import utils
 import constants
 
@@ -80,18 +79,20 @@ def RenderWorld(playerX, playerY, playerAngle, screenWidth, screenHeight):
             
             testX = int(playerX + distanceToWall * math.cos(columnAngle))
             testY = int(playerY + distanceToWall * math.sin(columnAngle))
-            if utils.is_inside_map((testX, testY)):
+            if not utils.is_inside_map((testX, testY)):
                 hitWall = True
                 distanceToWall = 20
             
             else:
-                if constants.MAP[testY][testX].is_impassible():
+                if constants.MAP[testY][testX].is_impassible() == True:
                     hitWall = True
                     wallX, wallY = testX, testY
+                    
                     app.currentColour = constants.MAP[testY][testX].color()
                     
                 else:
                     hitWall = False
+                    
                     app.floorColour = constants.MAP[testY][testX].color()
                     
         distanceToWall *= math.cos(playerAngle - columnAngle)
@@ -100,19 +101,19 @@ def RenderWorld(playerX, playerY, playerAngle, screenWidth, screenHeight):
         wallTop = max(0, screenHeight // 2 - wallHeight // app.wallHeightMod)
         wallBottom = min(screenHeight, screenHeight // 2 + wallHeight // app.playerHeightMod)
         
-        renderQuad(column, wallBottom, column + Resolution, wallBottom, column + Resolution, screenHeight, column, screenHeight, app.floorColour)
-        renderQuad(column-1, wallTop, column + Resolution, wallTop, column + Resolution, wallBottom,column, wallBottom, app.currentColour)
+        renderQuad(column, wallBottom, column + Resolution, wallBottom, column + Resolution, screenHeight, column, screenHeight, constants.PosColor.EMPTY.color())
+        renderQuad(column-1, wallTop, column + Resolution, wallTop, column + Resolution, wallBottom,column, wallBottom, constants.PosColor.LIGHTWALL.color())
 
-    for y in constants.MAP_DIMENSIONS:
-            for x in constants.MAP_DIMENSIONS:
-                Colour = constants.MAP[y][x].color()
+    for y in range(constants.MAP_DIMENSIONS):
+            for x in range(constants.MAP_DIMENSIONS):
+                Colour = constants.MAP[x][y].color()
                 renderQuad(x * 12 / 4, y * 12 / 4, (x + 1) * 12 / 4, y * 12 / 4, (x + 1) * 12 / 4, (y + 1) * 12 / 4,x * 12 / 4, (y + 1) * 12 / 4, Colour)
 
 def IsCollision(x, y):
     gridX = int(x)
     gridY = int(y)
 
-    if utils.is_inside_map((gridX, gridY)):
+    if not utils.is_inside_map((gridX, gridY)):
         return True
     return constants.MAP[gridY][gridX].is_impassible()
 
@@ -121,6 +122,7 @@ def onStep():
     RenderWorld(app.playerX, app.playerY, app.playerAngle, screenWidth, screenHeight)
 
 def onKeyHold(keys):
+    
     if "w" in keys:
         newPlayerX = app.playerX + speed * math.cos(app.playerAngle)*0.1
         newPlayerY = app.playerY + speed * math.sin(app.playerAngle)*0.1

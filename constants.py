@@ -11,7 +11,7 @@ ADJACENT_OFFSETS = [
     (-1, -1),
 ]
 
-MAP_DIMENSIONS = 20
+MAP_DIMENSIONS = 10
 class PosColor(Enum):
     EMPTY = 0
     LIGHTWALL = 1
@@ -40,13 +40,13 @@ COLOR_MAP = {
 }
 MAP = [
     [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
-    [PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
     [PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL],
 ]
