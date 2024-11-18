@@ -1,9 +1,14 @@
+from numpy import Infinity
 import constants
 import utils
+from sortedcontainers import SortedDict
 
 def find_path(from_pos, to, map):
     goals = set()
-    goals.add(from_pos)
+    goals.add(utils.pack(from_pos))
+
+    visited = set()
+    visited.add(utils.pack(from_pos))
 
     costs = {}
     for x in constants.MAP_DIMENSIONS:
@@ -12,37 +17,51 @@ def find_path(from_pos, to, map):
 
     from_positions = {}
 
-    generation = [from_pos]
+    open_set = SortedDict()
+    open_set[utils.pack(from_pos)] = f_score(from_pos, from_positions, goals)
 
-    if len(generation) > 0:
-        next_generation = []
+    for pos in open_set.pop():
 
-        for pos in generation.pop():
-            for offset in constants.ADJACENT_OFFSETS:
-                adj_pos = (pos[0] + offset[0], pos[1] + offset[1])
+        for offset in constants.ADJACENT_OFFSETS:
+            adj_pos = (pos[0] + offset[0], pos[1] + offset[1])
 
-                if adj_pos == to:
-                    return [adj_pos]
+            packed = utils.pack(adj_pos)
+            from_positions[packed] = pos
 
-                if adj_pos in costs:
-                    continue
+            if not utils.is_inside_map(adj_pos):
+                continue
 
-                next_generation.append(adj_pos)
-                from_positions[pos] = adj_pos
+            if packed in goals:
+                return construct_path(adj_pos, from_positions)
 
-        generation = next_generation
+            if adj_pos == to:
+                continue
 
-def f_score():
+            if costs[packed] == None:
+                continue
+
+            score = f_score()
+            open_set.__setitem__(packed, score)
+    return None
+    
+
+def f_score(pos, from_positions, goals):
     pass
 
-def g_score():
-    pass
+def h_score(pos, from_positions):
+    return len(construct_path(pos, from_positions))
+
+def g_score(pos, goals):
+    min_score = Infinity
+    for goal in goals:
+        min_score = utils.distance(pos, goal)
+    return min_score
 
 def construct_path(to, from_positions):
     path = []
     previous = to
 
-    for pos in from_positions[pack(previous)]:
+    for pos in from_positions[utils.pack(previous)]:
         
         path.append(pos)
         previous = pos
