@@ -122,21 +122,24 @@ def onStep():
     RenderWorld(app.playerX, app.playerY, app.playerAngle, screenWidth, screenHeight)
 
 def onKeyHold(keys):
-    
     if "w" in keys:
+        print("w")
         newPlayerX = app.playerX + speed * math.cos(app.playerAngle)*0.1
         newPlayerY = app.playerY + speed * math.sin(app.playerAngle)*0.1
-    elif "s" in keys:
+    if "s" in keys:
+        print("s")
         newPlayerX = app.playerX - speed * math.cos(app.playerAngle)*0.1
         newPlayerY = app.playerY - speed * math.sin(app.playerAngle)*0.1
-    elif "a" in keys:
+    if "a" in keys:
+        print("a")
         newPlayerX = app.playerX + speed * math.sin(app.playerAngle)*0.1
         newPlayerY = app.playerY - speed * math.cos(app.playerAngle)*0.1
-    elif "d" in keys:
+    if "d" in keys:
+        print("d")
         newPlayerX = app.playerX - speed * math.sin(app.playerAngle)*0.1
         newPlayerY = app.playerY + speed * math.cos(app.playerAngle)*0.1
         
-    elif "left" in keys:
+    if "left" in keys:
         app.playerAngle -= math.pi/16
         if app.playerAngle <= math.pi*-2:
             app.playerAngle = 0
@@ -144,7 +147,7 @@ def onKeyHold(keys):
         newPlayerY = app.playerY
         Background.centerX = app.playerAngle*-63.661+200
         
-    elif "right" in keys:
+    if "right" in keys:
         app.playerAngle += math.pi/16
         if app.playerAngle >= math.pi*2:
             app.playerAngle = 0
@@ -152,17 +155,15 @@ def onKeyHold(keys):
         newPlayerY = app.playerY
         Background.centerX = app.playerAngle*-63.661+200
         
-    elif "space" in keys:
+    if "space" in keys:
         shoot()
-        newPlayerX = app.playerX
-        newPlayerY = app.playerY
-    else:
         newPlayerX = app.playerX
         newPlayerY = app.playerY
         
     if IsCollision(newPlayerX, newPlayerY):
         pass
     else:
+        print("allowed", app.playerX, app.playerY, newPlayerX, newPlayerY)
         app.playerX = newPlayerX
         app.playerY = newPlayerY
 
