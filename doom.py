@@ -3,6 +3,7 @@ import time
 from cmu_graphics import *
 import utils
 import constants
+import enemy
 
 app.stepsPerSecond = 60
 CurrentScreen = Group()
@@ -163,7 +164,6 @@ def onKeyHold(keys):
     if IsCollision(newPlayerX, newPlayerY):
         pass
     else:
-        print("allowed", app.playerX, app.playerY, newPlayerX, newPlayerY)
         app.playerX = newPlayerX
         app.playerY = newPlayerY
 
