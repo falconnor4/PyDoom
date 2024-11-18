@@ -28,6 +28,9 @@ class PosColor(Enum):
         if self == PosColor.EMPTY:
             return 1
         return None
+    
+    def color(self):
+        return COLOR_MAP[self]
 
 COLOR_MAP = {
     PosColor.EMPTY: 'firebrick',
