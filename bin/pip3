@@ -1,4 +1,4 @@
-#!/home/connor/Documents/CAPU/CS115/PyDoom/bin/python
+#!/home/connor/Documents/CAPU/CS115/PydoomO/PydoomO/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
