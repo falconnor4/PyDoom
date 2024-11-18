@@ -26,7 +26,7 @@ speed = 0.9
 health = 89
 screenWidth = 400
 screenHeight = 360
-Resolution = 10
+Resolution = 3
 
 app.wallHeightMod = 2
 app.playerHeightMod = 2
@@ -168,7 +168,7 @@ def onKeyHold(keys):
             app.playerAngle = 0
         newPlayerX = app.playerX
         newPlayerY = app.playerY
-        Background.centerX = app.playerAngle*-63.661+200
+        #Background.centerX = app.playerAngle*-63.661+200
         
     elif "right" in keys:
         app.playerAngle += math.pi/16
@@ -176,7 +176,7 @@ def onKeyHold(keys):
             app.playerAngle = 0
         newPlayerX = app.playerX
         newPlayerY = app.playerY
-        Background.centerX = app.playerAngle*-63.661+200
+        #Background.centerX = app.playerAngle*-63.661+200
         
     elif "space" in keys:
         shoot()
