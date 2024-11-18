@@ -1,6 +1,9 @@
 import math
 import time
 from cmu_graphics import *
+import cmu_graphics
+import utils
+import constants
 
 app.stepsPerSecond = 60
 CurrentScreen = Group()
@@ -29,32 +32,6 @@ Resolution = 3
 app.wallHeightMod = 2
 app.playerHeightMod = 2
 animBuffer = 0.1
-
-worldMap = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
-    [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
-    [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
-    [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 1, 1, 0, 0, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    ]
-    
-worldColours = [
-    ['gray', 'gray', 'gray', 'gray', 'gray', 'gray', 'gray', 'gray', 'gray', 'gray'],
-    ['dimGray', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'dimGray', 'dimGray', 'fireBrick', 'fireBrick', 'gray', 'gray', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'dimGray', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'gray', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'fireBrick', 'fireBrick', 'lime', 'lime', 'fireBrick', 'fireBrick', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'fireBrick', 'fireBrick', 'lime', 'lime', 'fireBrick', 'fireBrick', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'dimGray', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'dimGray', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'dimGray', 'dimGray', 'fireBrick', 'fireBrick', 'dimGray', 'dimGray', 'fireBrick', 'gray'],
-    ['dimGray', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'fireBrick', 'gray'],
-    ['dimGray', 'dimGray', 'dimGray', 'dimGray', 'dimGray', 'dimGray', 'dimGray', 'dimGray', 'dimGray', 'gray']
-    ]
 
 def shoot():
     #TODO: for some reason the .visible meathod is not working, will look into later.
@@ -103,19 +80,19 @@ def RenderWorld(playerX, playerY, playerAngle, screenWidth, screenHeight):
             
             testX = int(playerX + distanceToWall * math.cos(columnAngle))
             testY = int(playerY + distanceToWall * math.sin(columnAngle))
-            if testX < 0 or testX >= len(worldMap[0]) or testY < 0 or testY >= len(worldMap):
+            if utils.is_inside_map((testX, testY)):
                 hitWall = True
                 distanceToWall = 20
             
             else:
-                if worldMap[testY][testX] == 1:
+                if constants.MAP[testY][testX].is_impassible():
                     hitWall = True
                     wallX, wallY = testX, testY
-                    app.currentColour = worldColours[testY][testX]
+                    app.currentColour = constants.MAP[testY][testX].color()
                     
-                elif worldMap[testY][testX] == 0:
+                else:
                     hitWall = False
-                    app.floorColour = worldColours[testY][testX]
+                    app.floorColour = constants.MAP[testY][testX].color()
                     
         distanceToWall *= math.cos(playerAngle - columnAngle)
         wallHeight = min(screenHeight, int(screenHeight / distanceToWall))
@@ -126,20 +103,18 @@ def RenderWorld(playerX, playerY, playerAngle, screenWidth, screenHeight):
         renderQuad(column, wallBottom, column + Resolution, wallBottom, column + Resolution, screenHeight, column, screenHeight, app.floorColour)
         renderQuad(column-1, wallTop, column + Resolution, wallTop, column + Resolution, wallBottom,column, wallBottom, app.currentColour)
 
-    for y in range(len(worldMap)):
-            for x in range(len(worldMap[y])):
-                Colour = worldColours[y][x]
+    for y in constants.MAP_DIMENSIONS:
+            for x in constants.MAP_DIMENSIONS:
+                Colour = constants.MAP[y][x].color()
                 renderQuad(x * 12 / 4, y * 12 / 4, (x + 1) * 12 / 4, y * 12 / 4, (x + 1) * 12 / 4, (y + 1) * 12 / 4,x * 12 / 4, (y + 1) * 12 / 4, Colour)
 
 def IsCollision(x, y):
     gridX = int(x)
     gridY = int(y)
-    if gridY < 0 or gridY >= len(worldMap) or gridX < 0 or gridX >= len(worldMap[0]):
+
+    if utils.is_inside_map((gridX, gridY)):
         return True
-    if worldMap[gridY][gridX] == 1:
-        return True
-        
-    return False
+    return constants.MAP[gridY][gridX].is_impassible()
 
 def onStep():
     CurrentScreen.clear()
