@@ -40,13 +40,12 @@ def find_path(from_pos, to, map):
             if costs[packed] == None:
                 continue
 
-            score = f_score()
+            score = f_score(adj_pos, from_positions, goals)
             open_set.__setitem__(packed, score)
     return None
     
-
 def f_score(pos, from_positions, goals):
-    pass
+    h_score(pos, from_positions) + g_score(pos, goals)
 
 def h_score(pos, from_positions):
     return len(construct_path(pos, from_positions))
