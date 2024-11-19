@@ -1,190 +1,256 @@
+"""
+PyDoom - A simple Doom-like game implementation using cmu_graphics
+"""
+
+from typing import Tuple, Optional
 import math
 import time
+from dataclasses import dataclass
 from cmu_graphics import *
 import utils
 import constants
 import enemy
 
-app.stepsPerSecond = 60
-CurrentScreen = Group()
+# Game Configuration
+SCREEN_WIDTH = 400
+SCREEN_HEIGHT = 360
+RESOLUTION = 3
+SPEED = 0.9
+INITIAL_HEALTH = 89
+WALL_HEIGHT_MOD = 2
+PLAYER_HEIGHT_MOD = 2
+ANIM_BUFFER = 0.1
+MAX_VIEW_DISTANCE = 20
+
+@dataclass
+class PlayerState:
+    x: float = 1.5
+    y: float = 1.5
+    angle: float = 0.0
+    health: int = INITIAL_HEALTH
+
+# Initialize game state
+player = PlayerState()
+current_screen = Group()
+app.stepsPerSecond = 30
 app.setMaxShapeCount(69000000)
 
-Hud = Image('assets/DOOM_HUD.png',0,360, width=400,height=40)
-Background = Image('assets/Loopedskies.png',0,0, width=1600, height=200,align='top')
-Background.toBack()
+# Load game assets
+hud = Image('assets/DOOM_HUD.png', 0, 360, width=SCREEN_WIDTH, height=40)
+background = Image('assets/Loopedskies.png', 0, 0, width=1600, height=200, align='top')
+background.toBack()
 
-#Face = Image('cmu://746728/28903928/doomguyGIF.gif',185,380,align='center',width=68,height=39)
+# Weapon animation frames
+weapon_frames = {
+    'frame0': Image('assets/SS0.png', 200, 360, align='bottom', width=74, height=69, visible=True),
+    'frame1': Image('assets/SS1.png', 200, 360, align='bottom', width=102, height=100, visible=False),
+    'frame2': Image('assets/SS2.png', 200, 360, align='bottom', width=252, height=79, visible=False),
+    'frame3': Image('assets/SS3.png', 200, 360, align='bottom', width=110, height=64, visible=False),
+    'frame4': Image('assets/SS4.png', 200, 360, align='bottom', width=102, height=100, visible=False)
+}
 
-Frame0 = Image('assets/SS0.png', 200, 360,align='bottom',width=74,height=69, visible = True)
-Frame1 = Image('assets/SS1.png', 200, 360,align='bottom',width=102,height=100, visible = False)
-Frame2 = Image('assets/SS2.png', 200, 360,align='bottom',width=252,height=79, visible = False)
-Frame3 = Image('assets/SS3.png', 200, 360,align='bottom',width=110,height=64, visible = False)
-Frame4 = Image('assets/SS4.png', 200, 360,align='bottom',width=102,height=100, visible = False)
-
-app.playerX,app.playerY = 1.5, 1.5
-app.playerAngle = 0
-speed = 0.9
-health = 89
-screenWidth = 400
-screenHeight = 360
-Resolution = 3
-
-app.wallHeightMod = 2
-app.playerHeightMod = 2
-animBuffer = 0.1
-
-def shoot():
-    #TODO: for some reason the .visible meathod is not working, will look into later.
-    fire = Sound('assets/firing.mp3')
-    fire.play()
-    time.sleep(animBuffer)
-    open = Sound('assets/opening.mp3')
-    open.play()   
-    Frame0.visible = False
-    Frame1.visible = True 
-    time.sleep(animBuffer)
-    Frame1.visible = False
-    Frame2.visible = True
-    time.sleep(animBuffer)
-    reloading = Sound('assets/reloading.mp3')
-    reloading.play()
-    Frame2.visible = False
-    Frame3.visible = True
-    time.sleep(animBuffer)
-    Frame3.visible = False
-    Frame4.visible = True
-    time.sleep(animBuffer)
-    close = Sound('assets/closing.mp3')
-    close.play() 
-    Frame4.visible = False
-    Frame0.visible = True     
-
-def renderTri(locX1, locY1, locX2, locY2, LocX3, LocY3, color):
-    RenderedTri = Polygon(locX1, locY1, locX2, locY2, LocX3, LocY3, fill=color)
-    CurrentScreen.add(RenderedTri)
+def shoot() -> None:
+    """Handle weapon shooting animation and sound effects."""
+    sounds = {
+        'fire': Sound('assets/firing.mp3'),
+        'open': Sound('assets/opening.mp3'),
+        'reload': Sound('assets/reloading.mp3'),
+        'close': Sound('assets/closing.mp3')
+    }
     
-def renderQuad(locX1, locY1, locX2, locY2, LocX3, LocY3, LocX4, LocY4,color):
-    RenderedQuad = Polygon(locX1, locY1, locX2, locY2, LocX3, LocY3, LocX4, LocY4, fill=color)
-    CurrentScreen.add(RenderedQuad)
+    animation_sequence = [
+        ('fire', 'frame1'),
+        ('open', 'frame2'),
+        ('reload', 'frame3'),
+        ('close', 'frame4'),
+    ]
+    
+    for sound_key, frame_key in animation_sequence:
+        sounds[sound_key].play()
+        weapon_frames['frame0'].visible = False
+        weapon_frames[frame_key].visible = True
+        time.sleep(ANIM_BUFFER)
+        weapon_frames[frame_key].visible = False
+    
+    weapon_frames['frame0'].visible = True
 
-
-def RenderWorld(playerX, playerY, playerAngle, screenWidth, screenHeight):
-    for column in range(0, screenWidth, Resolution):
-        columnAngle = playerAngle - (math.atan(0.5 - (column + 0.5) / (screenWidth / 2)))
-        distanceToWall = 0
-        hitWall = False
-        wallX, wallY = playerX, playerY
-                
-        while not hitWall and distanceToWall < 20:
-            distanceToWall += Resolution * 0.00625
-            
-            testX = int(playerX + distanceToWall * math.cos(columnAngle))
-            testY = int(playerY + distanceToWall * math.sin(columnAngle))
-            if not utils.is_inside_map((testX, testY)):
-                hitWall = True
-                distanceToWall = 20
-            
-            else:
-                if constants.MAP[testY][testX].is_impassible() == True:
-                    hitWall = True
-                    wallX, wallY = testX, testY
-                    
-                    app.currentColour = constants.MAP[testY][testX].color()
-                    
-                else:
-                    hitWall = False
-                    
-                    app.floorColour = constants.MAP[testY][testX].color()
-                    
-        distanceToWall *= math.cos(playerAngle - columnAngle)
-        wallHeight = min(screenHeight, int(screenHeight / distanceToWall))
-        
-        wallTop = max(0, screenHeight // 2 - wallHeight // app.wallHeightMod)
-        wallBottom = min(screenHeight, screenHeight // 2 + wallHeight // app.playerHeightMod)
-        
-        renderQuad(column, wallBottom, column + Resolution, wallBottom, column + Resolution, screenHeight, column, screenHeight, constants.PosColor.EMPTY.color())
-        renderQuad(column-1, wallTop, column + Resolution, wallTop, column + Resolution, wallBottom,column, wallBottom, constants.PosColor.LIGHTWALL.color())
-
-    for y in range(constants.MAP_DIMENSIONS):
-            for x in range(constants.MAP_DIMENSIONS):
-                Colour = constants.MAP[x][y].color()
-                renderQuad(x * 12 / 4, y * 12 / 4, (x + 1) * 12 / 4, y * 12 / 4, (x + 1) * 12 / 4, (y + 1) * 12 / 4,x * 12 / 4, (y + 1) * 12 / 4, Colour)
-
-def IsCollision(x, y):
-    gridX = int(x)
-    gridY = int(y)
-
-    if not utils.is_inside_map((gridX, gridY)):
-        return True
-    return constants.MAP[gridY][gridX].is_impassible()
-
-def onStep():
-    CurrentScreen.clear()
-    RenderWorld(app.playerX, app.playerY, app.playerAngle, screenWidth, screenHeight)
-
-def onKeyHold(keys):
-    if "w" in keys:
-        newPlayerX = app.playerX + speed * math.cos(app.playerAngle)*0.1
-        newPlayerY = app.playerY + speed * math.sin(app.playerAngle)*0.1
-    if "s" in keys:
-        newPlayerX = app.playerX - speed * math.cos(app.playerAngle)*0.1
-        newPlayerY = app.playerY - speed * math.sin(app.playerAngle)*0.1
-    if "a" in keys:
-        newPlayerX = app.playerX + speed * math.sin(app.playerAngle)*0.1
-        newPlayerY = app.playerY - speed * math.cos(app.playerAngle)*0.1
-    if "d" in keys:
-        newPlayerX = app.playerX - speed * math.sin(app.playerAngle)*0.1
-        newPlayerY = app.playerY + speed * math.cos(app.playerAngle)*0.1
-        
-    if "left" in keys:
-        app.playerAngle -= math.pi/16
-        if app.playerAngle <= math.pi*-2:
-            app.playerAngle = 0
-        newPlayerX = app.playerX
-        newPlayerY = app.playerY
-        Background.centerX = app.playerAngle*-63.661+200
-        
-    if "right" in keys:
-        app.playerAngle += math.pi/16
-        if app.playerAngle >= math.pi*2:
-            app.playerAngle = 0
-        newPlayerX = app.playerX
-        newPlayerY = app.playerY
-        Background.centerX = app.playerAngle*-63.661+200
-        
-    if "space" in keys:
-        shoot()
-        newPlayerX = app.playerX
-        newPlayerY = app.playerY
-        
-    if IsCollision(newPlayerX, newPlayerY):
-        pass
+def render_shape(vertices: list[Tuple[float, float]], color: str, shape_type: str = 'quad') -> None:
+    """Render a shape (triangle or quad) to the current screen.
+    
+    Args:
+        vertices: List of vertex coordinates
+        color: Fill color for the shape
+        shape_type: Either 'quad' or 'tri'
+    """
+    if shape_type == 'quad' and len(vertices) == 4:
+        shape = Polygon(*[coord for vertex in vertices for coord in vertex], fill=color)
+    elif shape_type == 'tri' and len(vertices) == 3:
+        shape = Polygon(*[coord for vertex in vertices for coord in vertex], fill=color)
     else:
-        app.playerX = newPlayerX
-        app.playerY = newPlayerY
+        raise ValueError(f"Invalid shape type or number of vertices: {shape_type}, {len(vertices)}")
+    
+    current_screen.add(shape)
 
+def calculate_wall_dimensions(distance: float, column_angle: float) -> Tuple[int, int]:
+    """Calculate wall dimensions based on distance and angle.
+    
+    Args:
+        distance: Distance to wall
+        column_angle: Angle of the current column
+        
+    Returns:
+        Tuple of (wall_top, wall_bottom) coordinates
+    """
+    distance *= math.cos(player.angle - column_angle)
+    wall_height = min(SCREEN_HEIGHT, int(SCREEN_HEIGHT / distance))
+    
+    wall_top = max(0, SCREEN_HEIGHT // 2 - wall_height // WALL_HEIGHT_MOD)
+    wall_bottom = min(SCREEN_HEIGHT, SCREEN_HEIGHT // 2 + wall_height // PLAYER_HEIGHT_MOD)
+    
+    return wall_top, wall_bottom
+
+def render_world() -> None:
+    """Render the 3D world view."""
+    for column in range(0, SCREEN_WIDTH, RESOLUTION):
+        column_angle = player.angle - (math.atan(0.5 - (column + 0.5) / (SCREEN_WIDTH / 2)))
+        distance = ray_cast(column_angle)
+        
+        if distance is not None:
+            wall_top, wall_bottom = calculate_wall_dimensions(distance, column_angle)
+            
+            # Render floor
+            render_shape([
+                (column, wall_bottom),
+                (column + RESOLUTION, wall_bottom),
+                (column + RESOLUTION, SCREEN_HEIGHT),
+                (column, SCREEN_HEIGHT)
+            ], constants.PosColor.EMPTY.color())
+            
+            # Render wall
+            render_shape([
+                (column, wall_top),
+                (column + RESOLUTION, wall_top),
+                (column + RESOLUTION, wall_bottom),
+                (column, wall_bottom)
+            ], constants.PosColor.LIGHTWALL.color())
+
+def ray_cast(angle: float) -> Optional[float]:
+    """Cast a ray and return the distance to the nearest wall.
+    
+    Args:
+        angle: Angle of the ray
+        
+    Returns:
+        Distance to wall or None if no wall found
+    """
+    distance = 0
+    while distance < MAX_VIEW_DISTANCE:
+        distance += RESOLUTION * 0.00625
+        
+        test_x = int(player.x + distance * math.cos(angle))
+        test_y = int(player.y + distance * math.sin(angle))
+        
+        if not utils.is_inside_map((test_x, test_y)):
+            return MAX_VIEW_DISTANCE
+            
+        if constants.MAP[test_y][test_x].is_impassible():
+            return distance
+            
+    return None
+
+def is_collision(x: float, y: float) -> bool:
+    """Check if a position would result in a collision.
+    
+    Args:
+        x: X coordinate to check
+        y: Y coordinate to check
+        
+    Returns:
+        True if position would result in collision, False otherwise
+    """
+    grid_x, grid_y = int(x), int(y)
+    
+    if not utils.is_inside_map((grid_x, grid_y)):
+        return True
+    return constants.MAP[grid_y][grid_x].is_impassible()
+
+def handle_movement(keys: set) -> None:
+    """Handle player movement based on keyboard input.
+    
+    Args:
+        keys: Set of currently held keys
+    """
+    new_x, new_y = player.x, player.y
+    
+    if 'w' in keys:
+        new_x += SPEED * math.cos(player.angle) * 0.1
+        new_y += SPEED * math.sin(player.angle) * 0.1
+    if 's' in keys:
+        new_x -= SPEED * math.cos(player.angle) * 0.1
+        new_y -= SPEED * math.sin(player.angle) * 0.1
+    if 'a' in keys:
+        new_x += SPEED * math.sin(player.angle) * 0.1
+        new_y -= SPEED * math.cos(player.angle) * 0.1
+    if 'd' in keys:
+        new_x -= SPEED * math.sin(player.angle) * 0.1
+        new_y += SPEED * math.cos(player.angle) * 0.1
+        
+    if not is_collision(new_x, new_y):
+        player.x, player.y = new_x, new_y
+
+def handle_rotation(keys: set) -> None:
+    """Handle player rotation based on keyboard input.
+    
+    Args:
+        keys: Set of currently held keys
+    """
+    if 'left' in keys:
+        player.angle = (player.angle - math.pi/16) % (math.pi * 2)
+        background.centerX = player.angle * -63.661 + 200
+    if 'right' in keys:
+        player.angle = (player.angle + math.pi/16) % (math.pi * 2)
+        background.centerX = player.angle * -63.661 + 200
+
+def onStep() -> None:
+    """Game update function called every frame."""
+    current_screen.clear()
+    render_world()
+
+def onKeyHold(keys: set) -> None:
+    """Handle keyboard input.
+    
+    Args:
+        keys: Set of currently held keys
+    """
+    handle_movement(keys)
+    handle_rotation(keys)
+    
+    if 'space' in keys:
+        shoot()
 
 class Imp:
-    def __init__(self, x, y):
+    """Enemy class representing an Imp monster."""
+    
+    def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
         self.angle = 0
         self.speed = 0.1
         self.health = 100
         self.visible = False
-        self.sprite = Image('assets/imp1.png', self.x, self.y, align='bottom', width=100, height=100, visible = False)
-        
-    def move(self):
+        self.sprite = Image('assets/imp1.png', self.x, self.y,
+                          align='bottom', width=100, height=100, visible=False)
+    
+    def move(self) -> None:
+        """Update Imp position."""
         self.x += self.speed * math.cos(self.angle)
         self.y += self.speed * math.sin(self.angle)
         self.sprite.x = self.x
         self.sprite.y = self.y
-        
-    def render(self):
+    
+    def render(self) -> None:
+        """Update Imp visibility."""
         self.sprite.visible = self.visible
 
-    #TODO: Implement occlusion culling based on depth
-    #I believe the best way to implement this is to do a depth prepass before rendering
-    #then, render walls in order, therfor occlusing the Imp's position.
-
-cmu_graphics.run()
+if __name__ == '__main__':
+    cmu_graphics.run()
