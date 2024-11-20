@@ -1,6 +1,4 @@
 from enum import Enum
-import enemy
-import utils
 
 ADJACENT_OFFSETS = [
     (-1, 0),
@@ -43,14 +41,13 @@ COLOR_MAP = {
 MAP = [
     [PosColor.LIGHTWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.DARKWALL, PosColor.LIGHTWALL],
     [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
-    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.LIGHTWALL],
-    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.DARKWALL, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
     [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.Portal, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY],
     [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.Portal, PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
-    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.LIGHTWALL],
-    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.DARKWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL],
+    [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.DARKWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
     [PosColor.LIGHTWALL, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.EMPTY, PosColor.LIGHTWALL],
     [PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL, PosColor.LIGHTWALL],
 ]
-ENEMY_MAP = {}
-# ENEMY_MAP[utils.pack((1, 1))] = enemy.Enemy()
+ENEMY_MAP = []

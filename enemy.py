@@ -54,7 +54,7 @@ class Imp(Enemy):
             self.sprites.append(SpriteFrame(sprite, width, height))
         
         self.sprite = self.sprites[0]  # Current visible sprite
-        self.visible = False
+        self.visible = True
     
     def update_animation(self) -> None:
         """Update the imp's animation state."""
@@ -75,6 +75,11 @@ class Imp(Enemy):
         self.x += self.speed * math.cos(self.angle)
         self.y += self.speed * math.sin(self.angle)
         self.update_animation()
+        
+    def move_to(self, to) -> None:
+        self.x = to[0]
+        self.y = to[1]
+        print(f"moved to {self.x} {self.y}")
     
     def render(self) -> None:
         """Update Imp visibility."""

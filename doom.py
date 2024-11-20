@@ -10,6 +10,7 @@ from cmu_graphics import *
 import utils
 import constants
 from enemy import Imp, SpriteFrame
+import astar
 
 # General Game Config
 SCREEN_WIDTH = 400
@@ -26,6 +27,7 @@ MAX_VIEW_DISTANCE = 20
 shooting = False
 current_frame = 0
 frame_counter = 0
+enemies_current_frame = 0
 
 @dataclass
 class PlayerState:
@@ -54,8 +56,11 @@ sounds = {
 }
 
 # Test enemy
-test_imp = Imp(5.5, 3.5)
-test_imp.visible = True
+constants.ENEMY_MAP.append(Imp(5.5, 3.5))
+constants.ENEMY_MAP.append(Imp(1, 1))
+constants.ENEMY_MAP.append(Imp(2, 2))
+constants.ENEMY_MAP.append(Imp(1, 2))
+constants.ENEMY_MAP.append(Imp(2, 1))
 
 # Weapon animation frames
 weapon_frames = {
@@ -257,31 +262,33 @@ def run_world() -> None:
             })
     
     # Update and render sprites
-    test_imp.update_animation()
-    sprite_element = render_sprite(test_imp)
-    if sprite_element:
-        render_elements.append(sprite_element)
     
-    render_elements.sort(key=lambda x: -x['distance'])
-    
-    current_screen.clear()
-    
-    background_group = Group()  
-    sprite_group = Group()      
-    wall_group = Group()        
-    
-    current_screen.add(background_group)
-    current_screen.add(sprite_group)
-    current_screen.add(wall_group)
-    
-    if sprite_element:
-        sprite = sprite_element['sprite']
-        current_frame = sprite.sprite.image
-        current_frame.centerX = (sprite_element['vertices'][0][0] + sprite_element['vertices'][1][0]) / 2
-        current_frame.centerY = (sprite_element['vertices'][0][1] + sprite_element['vertices'][2][1]) / 2
-        current_frame.width = sprite_element['vertices'][1][0] - sprite_element['vertices'][0][0]
-        current_frame.height = sprite_element['vertices'][2][1] - sprite_element['vertices'][0][1]
-        sprite_group.add(current_frame)
+    for enemy in constants.ENEMY_MAP:    
+        enemy.update_animation()
+        sprite_element = render_sprite(enemy)
+        if sprite_element:
+            render_elements.append(sprite_element)
+        
+        render_elements.sort(key=lambda x: -x['distance'])
+        
+        current_screen.clear()
+        
+        background_group = Group()  
+        sprite_group = Group()      
+        wall_group = Group()        
+        
+        current_screen.add(background_group)
+        current_screen.add(sprite_group)
+        current_screen.add(wall_group)
+        
+        if sprite_element:
+            sprite = sprite_element['sprite']
+            current_frame = sprite.sprite.image
+            current_frame.centerX = int((sprite_element['vertices'][0][0] + sprite_element['vertices'][1][0]) / 2)
+            current_frame.centerY = int((sprite_element['vertices'][0][1] + sprite_element['vertices'][2][1]) / 2)
+            current_frame.width = sprite_element['vertices'][1][0] - sprite_element['vertices'][0][0] + 0.1
+            current_frame.height = sprite_element['vertices'][2][1] - sprite_element['vertices'][0][1] + 0.1
+            sprite_group.add(current_frame)
     
     for element in render_elements:
         if element['type'] == 'sprite':
@@ -301,6 +308,21 @@ def run_world() -> None:
     background_group.toBack()
     sprite_group.toFront()
     wall_group.toFront()
+    
+def move_enemies():
+    """Movies all enemies that can move towards the player every 60 frames (roughly once per second)."""
+    global enemies_current_frame
+    
+    enemies_current_frame += 1
+    if enemies_current_frame % 60 != 0:
+        return
+    print("moving enemies")
+    for enemy in constants.ENEMY_MAP:
+        path = astar.find_path((enemy.x, enemy.y), (player.x, player.y))
+        if not path or not len(path):
+            print("no path")
+            continue
+        enemy.move(path[0])
 
 def ray_cast(angle: float) -> Optional[float]:
     """Cast a ray and return the distance to the nearest wall.
@@ -383,6 +405,7 @@ def onStep() -> None:
     """Game update function called every frame."""
     run_world()
     update_weapon_animation()
+    move_enemies()
 
 def onKeyHold(keys: set) -> None:
     """Handle keyboard input.
