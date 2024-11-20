@@ -22,6 +22,11 @@ PLAYER_HEIGHT_MOD = 2
 ANIM_BUFFER = 0.1
 MAX_VIEW_DISTANCE = 20
 
+# Add these variables to the top of the file with other game state
+shooting = False
+current_frame = 0
+frame_counter = 0
+
 @dataclass
 class PlayerState:
     x: float = 1.5
@@ -40,6 +45,14 @@ hud = Image('assets/DOOM_HUD.png', 0, 360, width=SCREEN_WIDTH, height=40)
 background = Image('assets/Loopedskies.png', 0, 0, width=1600, height=200, align='top')
 background.toBack()
 
+# Load sound effects
+sounds = {
+    'fire': Sound('assets/firing.mp3'),
+    'open': Sound('assets/opening.mp3'),
+    'reload': Sound('assets/reloading.mp3'),
+    'close': Sound('assets/closing.mp3')
+}
+
 # Test enemy
 test_imp = Imp(5.5, 3.5)
 test_imp.visible = True
@@ -55,28 +68,54 @@ weapon_frames = {
 
 def shoot() -> None:
     """Handle weapon shooting animation and sound effects."""
-    sounds = {
-        'fire': Sound('assets/firing.mp3'),
-        'open': Sound('assets/opening.mp3'),
-        'reload': Sound('assets/reloading.mp3'),
-        'close': Sound('assets/closing.mp3')
-    }
+    global shooting, current_frame
+    if not shooting:
+        shooting = True
+        current_frame = 0
+        sounds['fire'].play()
+
+def update_weapon_animation() -> None:
+    """Update weapon animation state."""
+    global shooting, current_frame, frame_counter
     
-    animation_sequence = [
-        ('fire', 'frame1'),
-        ('open', 'frame2'),
-        ('reload', 'frame3'),
-        ('close', 'frame4'),
-    ]
+    if not shooting:
+        return
+        
+    frames_per_state = 3  # Number of frames to show each animation state
     
-    for sound_key, frame_key in animation_sequence:
-        sounds[sound_key].play()
-        weapon_frames['frame0'].visible = False
-        weapon_frames[frame_key].visible = True
-        time.sleep(ANIM_BUFFER)
-        weapon_frames[frame_key].visible = False
+    # Update frame counter
+    frame_counter += 1
     
-    weapon_frames['frame0'].visible = True
+    # Check if it's time to advance animation
+    if frame_counter >= frames_per_state:
+        frame_counter = 0
+        current_frame += 1
+        
+        # Play appropriate sound for current frame
+        if current_frame == 1:
+            sounds['open'].play()
+        elif current_frame == 2:
+            sounds['reload'].play()
+        elif current_frame == 3:
+            sounds['close'].play()
+    
+    # Hide all frames
+    for frame in weapon_frames.values():
+        frame.visible = False
+    
+    # Show current frame
+    if current_frame == 0:
+        weapon_frames['frame0'].visible = True
+    elif current_frame == 1:
+        weapon_frames['frame1'].visible = True
+    elif current_frame == 2:
+        weapon_frames['frame2'].visible = True
+    elif current_frame == 3:
+        weapon_frames['frame2'].visible = True  # Keep frame2 visible during reload
+    else:
+        # Animation complete
+        weapon_frames['frame0'].visible = True
+        shooting = False
 
 def render_shape(vertices: list[Tuple[float, float]], color: str, shape_type: str = 'quad') -> None:
     """Render a shape (triangle or quad) to the current screen.
@@ -341,8 +380,8 @@ def handle_rotation(keys: set) -> None:
 
 def onStep() -> None:
     """Game update function called every frame."""
-    current_screen.clear()
     render_world()
+    update_weapon_animation()
 
 def onKeyHold(keys: set) -> None:
     """Handle keyboard input.
