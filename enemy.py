@@ -29,8 +29,8 @@ class Imp(Enemy):
         super().__init__()
         self.x = x
         self.y = y
-        self.sprite = Image('assets/imp.png', self.x, self.y,
-                          align='bottom', width=100, height=100, visible=False)
+        self.sprite = Image('assets/Imp/frame0.png', self.x, self.y,
+                          align='bottom', width=328, height=488, visible=False)
     
     def move(self) -> None:
         """Update Imp position."""
