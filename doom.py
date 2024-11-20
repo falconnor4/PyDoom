@@ -1,15 +1,15 @@
 """
-PyDoom - A simple Doom-like game implementation using cmu_graphics
+PyDoom - A simple Doom-like game implementation using cmu_graphics. Why may you ask? I havent the foggiest Idea.
 """
 
 from typing import Tuple, Optional
+from dataclasses import dataclass
 import math
 import time
-from dataclasses import dataclass
 from cmu_graphics import *
 import utils
 import constants
-from enemy import Imp
+from enemy import Imp, SpriteFrame
 
 # General Game Config
 SCREEN_WIDTH = 400
@@ -81,12 +81,11 @@ def update_weapon_animation() -> None:
     if not shooting:
         return
         
-    frames_per_state = 3  # Number of frames to show each animation state
+    frames_per_state = 8  # Number of frames to show each animation state
     
     # Update frame counter
     frame_counter += 1
     
-    # Check if it's time to advance animation
     if frame_counter >= frames_per_state:
         frame_counter = 0
         current_frame += 1
@@ -96,7 +95,7 @@ def update_weapon_animation() -> None:
             sounds['open'].play()
         elif current_frame == 2:
             sounds['reload'].play()
-        elif current_frame == 3:
+        elif current_frame == 4:
             sounds['close'].play()
     
     # Hide all frames
@@ -113,7 +112,7 @@ def update_weapon_animation() -> None:
     elif current_frame == 3:
         weapon_frames['frame2'].visible = True  # Keep frame2 visible during reload
     else:
-        # Animation complete
+        # Aaaaaaaand we're done!
         weapon_frames['frame0'].visible = True
         shooting = False
 
@@ -152,24 +151,19 @@ def calculate_wall_dimensions(distance: float, column_angle: float) -> Tuple[int
     
     return wall_top, wall_bottom
 
-def calculate_sprite_dimensions(distance: float) -> Tuple[int, int]:
-    """Calculate sprite dimensions based on distance.
+def calculate_sprite_dimensions(distance: float, sprite_frame: SpriteFrame) -> Tuple[float, float]:
+    """Calculate sprite dimensions based on distance and actual sprite dimensions.
     
     Args:
         distance: Distance to sprite
+        sprite_frame: Current sprite frame with actual dimensions
         
     Returns:
-        Tuple of (height, width)
+        Tuple of (height, width) 
     """
-    ORIGINAL_WIDTH = 328 #TODO: take sprite data from enemy
-    ORIGINAL_HEIGHT = 488
-    ASPECT_RATIO = ORIGINAL_WIDTH / ORIGINAL_HEIGHT
-    
-    base_height = SCREEN_HEIGHT // 2  
-    height = min(SCREEN_HEIGHT, int(base_height / distance))
-    
-    width = int(height * ASPECT_RATIO)
-    
+    aspect_ratio = sprite_frame.width / sprite_frame.height
+    height = SCREEN_HEIGHT / (distance + 0.0001)  # Avoid division by zero
+    width = height * aspect_ratio
     return height, width
 
 def render_sprite(sprite: Imp) -> Optional[dict]:
@@ -202,7 +196,7 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
         return None
     
     screen_x = SCREEN_WIDTH / 2 + math.tan(sprite_angle) * (SCREEN_WIDTH)
-    height, width = calculate_sprite_dimensions(distance)
+    height, width = calculate_sprite_dimensions(distance, sprite.sprite)
     screen_y = SCREEN_HEIGHT / 2
     
     half_width = width / 2
@@ -215,6 +209,11 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
         (screen_x - half_width, screen_y + half_height + half_height)
     ]
     
+    # Hide all sprite frames except current one
+    for s in sprite.sprites:
+        s.image.visible = False
+    sprite.sprite.image.visible = True
+    
     return {
         'type': 'sprite',
         'distance': distance,
@@ -222,7 +221,7 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
         'sprite': sprite
     }
 
-def render_world() -> None:
+def run_world() -> None:
     """Render the 3D world view with proper depth sorting."""
     render_elements = []
     
@@ -257,6 +256,8 @@ def render_world() -> None:
                 'color': constants.PosColor.LIGHTWALL.color()
             })
     
+    # Update and render sprites
+    test_imp.update_animation()
     sprite_element = render_sprite(test_imp)
     if sprite_element:
         render_elements.append(sprite_element)
@@ -275,12 +276,12 @@ def render_world() -> None:
     
     if sprite_element:
         sprite = sprite_element['sprite']
-        sprite.sprite.centerX = (sprite_element['vertices'][0][0] + sprite_element['vertices'][0][1]) / 2
-        sprite.sprite.centerY = (sprite_element['vertices'][0][1] + sprite_element['vertices'][2][1]) / 2
-        sprite.sprite.width = sprite_element['vertices'][1][0] - sprite_element['vertices'][0][0]
-        sprite.sprite.height = sprite_element['vertices'][2][1] - sprite_element['vertices'][0][1]
-        sprite.sprite.visible = True
-        sprite_group.add(sprite.sprite)
+        current_frame = sprite.sprite.image
+        current_frame.centerX = (sprite_element['vertices'][0][0] + sprite_element['vertices'][1][0]) / 2
+        current_frame.centerY = (sprite_element['vertices'][0][1] + sprite_element['vertices'][2][1]) / 2
+        current_frame.width = sprite_element['vertices'][1][0] - sprite_element['vertices'][0][0]
+        current_frame.height = sprite_element['vertices'][2][1] - sprite_element['vertices'][0][1]
+        sprite_group.add(current_frame)
     
     for element in render_elements:
         if element['type'] == 'sprite':
@@ -380,7 +381,7 @@ def handle_rotation(keys: set) -> None:
 
 def onStep() -> None:
     """Game update function called every frame."""
-    render_world()
+    run_world()
     update_weapon_animation()
 
 def onKeyHold(keys: set) -> None:

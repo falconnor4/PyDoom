@@ -1,4 +1,6 @@
 import constants
+import struct
+from typing import Tuple
 
 def pack(pos):
     return pos[0] * constants.MAP_DIMENSIONS + pos[1]
