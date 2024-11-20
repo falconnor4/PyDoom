@@ -145,19 +145,20 @@ def get_sprite_screen_pos(world_x: float, world_y: float) -> Tuple[float, float,
     distance = math.sqrt(dx * dx + dy * dy)
     
     # Calculate angle between player's view and sprite
-    sprite_angle = math.atan2(dy, dx)
+    sprite_angle = math.atan2(dx, dy)
     relative_angle = sprite_angle - player.angle
     
     # Normalize angle
-    if relative_angle > math.pi:
+    while relative_angle > math.pi:
         relative_angle -= 2 * math.pi
-    elif relative_angle < -math.pi:
+    while relative_angle < -math.pi:
         relative_angle += 2 * math.pi
         
     # Calculate screen position
-    screen_x = (SCREEN_WIDTH // 2) * (1 + relative_angle / (math.pi / 4))
+    fov = math.pi / 3  # 90 degrees field of view
+    screen_x = SCREEN_WIDTH * (0.5 + relative_angle / fov)
     
-    # Calculate screen y based on distance
+    # Calculate vertical position based on distance
     sprite_height, _ = calculate_sprite_dimensions(distance)
     screen_y = SCREEN_HEIGHT // 2  # Center vertically
     
@@ -175,21 +176,48 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
     if not sprite.visible:
         return None
         
-    screen_x, screen_y, distance = get_sprite_screen_pos(sprite.x, sprite.y)
+    # Calculate relative position to player
+    dx = sprite.x - player.x
+    dy = sprite.y - player.y
+    
+    # Calculate distance using Euclidean distance
+    distance = math.sqrt(dx * dx + dy * dy)
     
     # Check if sprite is in view
     if distance < 0.1 or distance > MAX_VIEW_DISTANCE:
         return None
     
+    # Calculate angle to sprite relative to player's view
+    sprite_angle = math.atan2(dy, dx) - player.angle
+    
+    # Normalize angle to [-π, π] #TODO: Fix
+    while sprite_angle > math.pi:
+        sprite_angle -= math.pi*2
+    while sprite_angle < -math.pi:
+        sprite_angle += math.pi*2
+        
+    # Check if sprite is in field of view (90 degrees = π/2)
+    if abs(sprite_angle) > math.pi / 2:
+        return None
+    
+    # Project sprite position onto screen
+    screen_x = SCREEN_WIDTH / 2 + math.tan(sprite_angle) * SCREEN_WIDTH
+    
     # Calculate sprite dimensions
     height, width = calculate_sprite_dimensions(distance)
     
+    # Calculate screen y (vertical center)
+    screen_y = SCREEN_HEIGHT / 2
+    
     # Create vertices for sprite quad
+    half_width = width / 2
+    half_height = height / 2
+    
     vertices = [
-        (screen_x - width//2, screen_y - height//2),
-        (screen_x + width//2, screen_y - height//2),
-        (screen_x + width//2, screen_y + height//2),
-        (screen_x - width//2, screen_y + height//2)
+        (screen_x - half_width, screen_y - half_height),  # Top left
+        (screen_x + half_width, screen_y - half_height),  # Top right
+        (screen_x + half_width, screen_y + half_height),  # Bottom right
+        (screen_x - half_width, screen_y + half_height)   # Bottom left
     ]
     
     return {
@@ -247,16 +275,47 @@ def render_world() -> None:
     render_elements.sort(key=lambda x: -x['distance'])
     
     # Second pass: Render all elements in sorted order
+    current_screen.clear()
+    
+    # Create groups for different layers
+    background_group = Group()  # Furthest (floors)
+    sprite_group = Group()      # Middle (sprites)
+    wall_group = Group()        # Nearest (walls)
+    
+    current_screen.add(background_group)
+    current_screen.add(sprite_group)
+    current_screen.add(wall_group)
+    
+    # Update sprite position
+    if sprite_element:
+        sprite = sprite_element['sprite']
+        sprite.sprite.centerX = (sprite_element['vertices'][0][0] + sprite_element['vertices'][0][1]) / 2
+        sprite.sprite.centerY = (sprite_element['vertices'][0][1] + sprite_element['vertices'][2][1]) / 2
+        sprite.sprite.width = sprite_element['vertices'][1][0] - sprite_element['vertices'][0][0]
+        sprite.sprite.height = sprite_element['vertices'][2][1] - sprite_element['vertices'][0][1]
+        sprite.sprite.visible = True
+        sprite_group.add(sprite.sprite)
+    
+    # Render elements in their appropriate groups
     for element in render_elements:
         if element['type'] == 'sprite':
-            sprite = element['sprite']
-            sprite.sprite.centerX = (element['vertices'][0][0] + element['vertices'][1][0]) / 2
-            sprite.sprite.centerY = (element['vertices'][0][1] + element['vertices'][2][1]) / 2
-            sprite.sprite.width = element['vertices'][1][0] - element['vertices'][0][0]
-            sprite.sprite.height = element['vertices'][2][1] - element['vertices'][0][1]
-            sprite.sprite.visible = True
-        else:
-            render_shape(element['vertices'], element['color'])
+            continue  # Already handled above
+        
+        shape = Polygon(*[coord for vertex in element['vertices'] for coord in vertex], 
+                      fill=element['color'])
+        
+        if element['type'] == 'floor':
+            background_group.add(shape)
+        else:  # wall
+            if sprite_element and element['distance'] > sprite_element['distance']:
+                background_group.add(shape)
+            else:
+                wall_group.add(shape)
+    
+    # Ensure proper group ordering
+    background_group.toBack()
+    sprite_group.toFront()
+    wall_group.toFront()
 
 def ray_cast(angle: float) -> Optional[float]:
     """Cast a ray and return the distance to the nearest wall.
