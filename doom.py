@@ -9,14 +9,14 @@ from dataclasses import dataclass
 from cmu_graphics import *
 import utils
 import constants
-import enemy
+from enemy import Imp
 
-# Game Configuration
+# General Game Config
 SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 360
 RESOLUTION = 3
 SPEED = 0.9
-INITIAL_HEALTH = 89
+INITIAL_HEALTH = 99
 WALL_HEIGHT_MOD = 2
 PLAYER_HEIGHT_MOD = 2
 ANIM_BUFFER = 0.1
@@ -39,6 +39,10 @@ app.setMaxShapeCount(69000000)
 hud = Image('assets/DOOM_HUD.png', 0, 360, width=SCREEN_WIDTH, height=40)
 background = Image('assets/Loopedskies.png', 0, 0, width=1600, height=200, align='top')
 background.toBack()
+
+# Test enemy
+test_imp = Imp(5.5, 3.5)  # Place imp in the world
+test_imp.visible = True
 
 # Weapon animation frames
 weapon_frames = {
@@ -109,8 +113,98 @@ def calculate_wall_dimensions(distance: float, column_angle: float) -> Tuple[int
     
     return wall_top, wall_bottom
 
+def calculate_sprite_dimensions(distance: float) -> Tuple[int, int]:
+    """Calculate sprite dimensions based on distance from player.
+    
+    Args:
+        distance: Distance to sprite
+        
+    Returns:
+        Tuple of (sprite_height, sprite_width)
+    """
+    base_height = SCREEN_HEIGHT // 3  # Base sprite height at distance 1
+    height = min(SCREEN_HEIGHT, int(base_height / distance))
+    width = height  # Maintain aspect ratio
+    return height, width
+
+def get_sprite_screen_pos(world_x: float, world_y: float) -> Tuple[float, float, float]:
+    """Calculate sprite's screen position and distance.
+    
+    Args:
+        world_x: Sprite's world X coordinate
+        world_y: Sprite's world Y coordinate
+        
+    Returns:
+        Tuple of (screen_x, screen_y, distance)
+    """
+    # Calculate relative position to player
+    dx = world_x - player.x
+    dy = world_y - player.y
+    
+    # Calculate distance
+    distance = math.sqrt(dx * dx + dy * dy)
+    
+    # Calculate angle between player's view and sprite
+    sprite_angle = math.atan2(dy, dx)
+    relative_angle = sprite_angle - player.angle
+    
+    # Normalize angle
+    if relative_angle > math.pi:
+        relative_angle -= 2 * math.pi
+    elif relative_angle < -math.pi:
+        relative_angle += 2 * math.pi
+        
+    # Calculate screen position
+    screen_x = (SCREEN_WIDTH // 2) * (1 + relative_angle / (math.pi / 4))
+    
+    # Calculate screen y based on distance
+    sprite_height, _ = calculate_sprite_dimensions(distance)
+    screen_y = SCREEN_HEIGHT // 2  # Center vertically
+    
+    return screen_x, screen_y, distance
+
+def render_sprite(sprite: Imp) -> Optional[dict]:
+    """Render a sprite with billboarding.
+    
+    Args:
+        sprite: The sprite to render
+        
+    Returns:
+        Dictionary with sprite rendering information or None if sprite shouldn't be rendered
+    """
+    if not sprite.visible:
+        return None
+        
+    screen_x, screen_y, distance = get_sprite_screen_pos(sprite.x, sprite.y)
+    
+    # Check if sprite is in view
+    if distance < 0.1 or distance > MAX_VIEW_DISTANCE:
+        return None
+    
+    # Calculate sprite dimensions
+    height, width = calculate_sprite_dimensions(distance)
+    
+    # Create vertices for sprite quad
+    vertices = [
+        (screen_x - width//2, screen_y - height//2),
+        (screen_x + width//2, screen_y - height//2),
+        (screen_x + width//2, screen_y + height//2),
+        (screen_x - width//2, screen_y + height//2)
+    ]
+    
+    return {
+        'type': 'sprite',
+        'distance': distance,
+        'vertices': vertices,
+        'sprite': sprite
+    }
+
 def render_world() -> None:
-    """Render the 3D world view."""
+    """Render the 3D world view with proper depth sorting."""
+    # List to store all renderable elements with their distances
+    render_elements = []
+    
+    # First pass: Collect all wall segments and their distances
     for column in range(0, SCREEN_WIDTH, RESOLUTION):
         column_angle = player.angle - (math.atan(0.5 - (column + 0.5) / (SCREEN_WIDTH / 2)))
         distance = ray_cast(column_angle)
@@ -118,21 +212,51 @@ def render_world() -> None:
         if distance is not None:
             wall_top, wall_bottom = calculate_wall_dimensions(distance, column_angle)
             
-            # Render floor
-            render_shape([
-                (column, wall_bottom),
-                (column + RESOLUTION, wall_bottom),
-                (column + RESOLUTION, SCREEN_HEIGHT),
-                (column, SCREEN_HEIGHT)
-            ], constants.PosColor.EMPTY.color())
+            # Store floor segment
+            render_elements.append({
+                'type': 'floor',
+                'distance': MAX_VIEW_DISTANCE,  # Floor is always furthest
+                'vertices': [
+                    (column, wall_bottom),
+                    (column + RESOLUTION, wall_bottom),
+                    (column + RESOLUTION, SCREEN_HEIGHT),
+                    (column, SCREEN_HEIGHT)
+                ],
+                'color': constants.PosColor.EMPTY.color()
+            })
             
-            # Render wall
-            render_shape([
-                (column, wall_top),
-                (column + RESOLUTION, wall_top),
-                (column + RESOLUTION, wall_bottom),
-                (column, wall_bottom)
-            ], constants.PosColor.LIGHTWALL.color())
+            # Store wall segment
+            render_elements.append({
+                'type': 'wall',
+                'distance': distance,
+                'vertices': [
+                    (column, wall_top),
+                    (column + RESOLUTION, wall_top),
+                    (column + RESOLUTION, wall_bottom),
+                    (column, wall_bottom)
+                ],
+                'color': constants.PosColor.LIGHTWALL.color()
+            })
+    
+    # Add sprites to render list
+    sprite_element = render_sprite(test_imp)
+    if sprite_element:
+        render_elements.append(sprite_element)
+    
+    # Sort elements by distance (furthest first)
+    render_elements.sort(key=lambda x: -x['distance'])
+    
+    # Second pass: Render all elements in sorted order
+    for element in render_elements:
+        if element['type'] == 'sprite':
+            sprite = element['sprite']
+            sprite.sprite.centerX = (element['vertices'][0][0] + element['vertices'][1][0]) / 2
+            sprite.sprite.centerY = (element['vertices'][0][1] + element['vertices'][2][1]) / 2
+            sprite.sprite.width = element['vertices'][1][0] - element['vertices'][0][0]
+            sprite.sprite.height = element['vertices'][2][1] - element['vertices'][0][1]
+            sprite.sprite.visible = True
+        else:
+            render_shape(element['vertices'], element['color'])
 
 def ray_cast(angle: float) -> Optional[float]:
     """Cast a ray and return the distance to the nearest wall.
@@ -227,30 +351,6 @@ def onKeyHold(keys: set) -> None:
     
     if 'space' in keys:
         shoot()
-
-class Imp:
-    """Enemy class representing an Imp monster."""
-    
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-        self.angle = 0
-        self.speed = 0.1
-        self.health = 100
-        self.visible = False
-        self.sprite = Image('assets/imp1.png', self.x, self.y,
-                          align='bottom', width=100, height=100, visible=False)
-    
-    def move(self) -> None:
-        """Update Imp position."""
-        self.x += self.speed * math.cos(self.angle)
-        self.y += self.speed * math.sin(self.angle)
-        self.sprite.x = self.x
-        self.sprite.y = self.y
-    
-    def render(self) -> None:
-        """Update Imp visibility."""
-        self.sprite.visible = self.visible
 
 if __name__ == '__main__':
     cmu_graphics.run()
