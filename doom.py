@@ -57,10 +57,10 @@ sounds = {
 
 # Test enemy
 constants.ENEMY_MAP.append(Imp(5.5, 3.5))
-constants.ENEMY_MAP.append(Imp(1, 1))
-constants.ENEMY_MAP.append(Imp(2, 2))
-constants.ENEMY_MAP.append(Imp(1, 2))
-constants.ENEMY_MAP.append(Imp(2, 1))
+# constants.ENEMY_MAP.append(Imp(1, 1))
+# constants.ENEMY_MAP.append(Imp(2, 2))
+# constants.ENEMY_MAP.append(Imp(1, 2))
+# constants.ENEMY_MAP.append(Imp(2, 1))
 
 # Weapon animation frames
 weapon_frames = {
@@ -314,15 +314,16 @@ def move_enemies():
     global enemies_current_frame
     
     enemies_current_frame += 1
-    if enemies_current_frame % 60 != 0:
+    if enemies_current_frame % 10 != 0:
         return
-    print("moving enemies")
+    print(f"player at {player.x} {player.y}")
     for enemy in constants.ENEMY_MAP:
         path = astar.find_path((enemy.x, enemy.y), (player.x, player.y))
-        if not path or not len(path):
+        if not path or len(path) < 2:
             print("no path")
+            print(f"for pos {enemy.x} {enemy.y}")
             continue
-        enemy.move(path[0])
+        enemy.move_to(path[1])
 
 def ray_cast(angle: float) -> Optional[float]:
     """Cast a ray and return the distance to the nearest wall.
