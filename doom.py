@@ -183,35 +183,50 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
     if not sprite.visible:
         return None
     
-    dx = sprite.x - player.x
-    dy = sprite.y - player.y
-    distance = math.sqrt(dx * dx + dy * dy)
+    # Calculate sprite position relative to player, with 0.5 offset for chunk centering
+    dx = (sprite.x + 0.5) - player.x
+    dy = (sprite.y + 0.5) - player.y
     
-    if distance < 0.1 or distance > MAX_VIEW_DISTANCE:
+    # Calculate euclidean distance
+    euclidean_distance = math.sqrt(dx * dx + dy * dy)
+    
+    if euclidean_distance < 0.1 or euclidean_distance > MAX_VIEW_DISTANCE:
         return None
     
-    sprite_angle = math.atan2(dy, dx) - player.angle
+    # Calculate angle to sprite relative to player's view direction
+    sprite_angle = math.atan2(dy, dx)
+    relative_angle = sprite_angle - player.angle
     
-    while sprite_angle > math.pi:
-        sprite_angle -= math.pi * 2
-    while sprite_angle < -math.pi:
-        sprite_angle += math.pi * 2
+    # Normalize angle to [-pi, pi]
+    while relative_angle > math.pi:
+        relative_angle -= 2 * math.pi
+    while relative_angle < -math.pi:
+        relative_angle += 2 * math.pi
     
-    if abs(sprite_angle) > math.pi / 2:
+    # Check if sprite is in field of view
+    if abs(relative_angle) > math.pi / 2:
         return None
     
-    screen_x = SCREEN_WIDTH / 2 + math.tan(sprite_angle) * (SCREEN_WIDTH)
-    height, width = calculate_sprite_dimensions(distance, sprite.sprite)
+    # Calculate screen position
+    fov = math.pi / 2  # 90 degrees field of view
+    screen_x = SCREEN_WIDTH * (0.5 + math.tan(relative_angle) / (2 * math.tan(fov / 2)))
+    
+    # Calculate corrected distance for fisheye
+    corrected_distance = euclidean_distance * math.cos(relative_angle)
+    
+    # Calculate sprite dimensions
+    height, width = calculate_sprite_dimensions(corrected_distance, sprite.sprite)
     screen_y = SCREEN_HEIGHT / 2
     
+    # Calculate sprite corners
     half_width = width / 2
     half_height = height / 2
     
     vertices = [
-        (screen_x - half_width, screen_y - half_height + half_height),
-        (screen_x + half_width, screen_y - half_height + half_height),
-        (screen_x + half_width, screen_y + half_height + half_height),
-        (screen_x - half_width, screen_y + half_height + half_height)
+        (screen_x - half_width, screen_y - half_height),
+        (screen_x + half_width, screen_y - half_height),
+        (screen_x + half_width, screen_y + half_height),
+        (screen_x - half_width, screen_y + half_height)
     ]
     
     # Hide all sprite frames except current one
@@ -221,7 +236,7 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
     
     return {
         'type': 'sprite',
-        'distance': distance,
+        'distance': corrected_distance,
         'vertices': vertices,
         'sprite': sprite
     }
@@ -258,7 +273,7 @@ def run_world() -> None:
                     (column + RESOLUTION, wall_bottom),
                     (column, wall_bottom)
                 ],
-                'color': constants.PosColor.LIGHTWALL.color()
+                'color': constants.PosColor.LIGHTWALL.color() #TODO: Fix wall color logic, (allow multiple colors)
             })
     
     # Update and render sprites

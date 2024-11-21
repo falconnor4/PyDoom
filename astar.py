@@ -1,4 +1,3 @@
-from numpy import Infinity
 import constants
 import utils
 from sortedcontainers import SortedDict
@@ -65,10 +64,10 @@ def h_score(pos, from_positions):
 def g_score(pos, goals):
     """Finds the g-sore for a position: the nearest distance to a goal"""
     goal_pos = None
-    min_score = Infinity
+    min_score = float('inf')
     for goal in goals:
         goal_pos = utils.unpack(goal)
-        min_score = utils.distance(pos, goal_pos)
+        min_score = min(min_score, utils.distance(pos, goal_pos))
 
     return min_score
 
