@@ -15,7 +15,7 @@ import astar
 # General Game Config
 SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 360
-RESOLUTION = 3
+RESOLUTION = 3 #Modify this if the game isn't running as fast as you hope, it c
 SPEED = 0.9
 INITIAL_HEALTH = 99
 WALL_HEIGHT_MOD = 2
@@ -207,9 +207,10 @@ def render_sprite(sprite: Imp) -> Optional[dict]:
     if abs(relative_angle) > math.pi / 2:
         return None
     
-    # Calculate screen position
+    # Calculate screen position using FOV-aware projection
     fov = math.pi / 2  # 90 degrees field of view
-    screen_x = SCREEN_WIDTH * (0.5 + math.tan(relative_angle) / (2 * math.tan(fov / 2)))
+    half_fov = fov / 2
+    screen_x = SCREEN_WIDTH * (0.5 + (relative_angle / fov))
     
     # Calculate corrected distance for fisheye
     corrected_distance = euclidean_distance * math.cos(relative_angle)
@@ -247,34 +248,33 @@ def run_world() -> None:
     
     for column in range(0, SCREEN_WIDTH, RESOLUTION):
         column_angle = player.angle - (math.atan(0.5 - (column + 0.5) / (SCREEN_WIDTH / 2)))
-        distance = ray_cast(column_angle)
+        distance, wall_type = ray_cast(column_angle)
         
-        if distance is not None:
-            wall_top, wall_bottom = calculate_wall_dimensions(distance, column_angle)
-            
-            render_elements.append({
-                'type': 'floor',
-                'distance': MAX_VIEW_DISTANCE,  
-                'vertices': [
-                    (column, wall_bottom),
-                    (column + RESOLUTION, wall_bottom),
-                    (column + RESOLUTION, SCREEN_HEIGHT),
-                    (column, SCREEN_HEIGHT)
-                ],
-                'color': constants.PosColor.EMPTY.color()
-            })
-            
-            render_elements.append({
-                'type': 'wall',
-                'distance': distance,
-                'vertices': [
-                    (column, wall_top),
-                    (column + RESOLUTION, wall_top),
-                    (column + RESOLUTION, wall_bottom),
-                    (column, wall_bottom)
-                ],
-                'color': constants.PosColor.LIGHTWALL.color() #TODO: Fix wall color logic, (allow multiple colors)
-            })
+        wall_top, wall_bottom = calculate_wall_dimensions(distance, column_angle)
+        
+        render_elements.append({
+            'type': 'floor',
+            'distance': MAX_VIEW_DISTANCE,  
+            'vertices': [
+                (column, wall_bottom),
+                (column + RESOLUTION, wall_bottom),
+                (column + RESOLUTION, SCREEN_HEIGHT),
+                (column, SCREEN_HEIGHT)
+            ],
+            'color': constants.PosColor.EMPTY.color()
+        })
+        
+        render_elements.append({
+            'type': 'wall',
+            'distance': distance,
+            'vertices': [
+                (column, wall_top),
+                (column + RESOLUTION, wall_top),
+                (column + RESOLUTION, wall_bottom),
+                (column, wall_bottom)
+            ],
+            'color': wall_type.color() if wall_type else constants.PosColor.LIGHTWALL.color()
+        })
     
     # Update and render sprites
     
@@ -291,7 +291,7 @@ def run_world() -> None:
         background_group = Group()  
         sprite_group = Group()      
         wall_group = Group()        
-        
+    
         current_screen.add(background_group)
         current_screen.add(sprite_group)
         current_screen.add(wall_group)
@@ -340,45 +340,73 @@ def move_enemies():
             continue
         enemy.move_to(path[1])
 
-def ray_cast(angle: float) -> Optional[float]:
+def ray_cast(angle: float) -> Optional[Tuple[float, constants.PosColor]]:
     """Cast a ray and return the distance to the nearest wall.
     
     Args:
-        angle: Angle of the ray
+        angle: Angle to cast ray at
         
     Returns:
-        Distance to wall or None if no wall found
+        Tuple of (distance to nearest wall, wall type) or (MAX_VIEW_DISTANCE, default wall) if no wall found
     """
-    distance = 0
-    while distance < MAX_VIEW_DISTANCE:
-        distance += RESOLUTION * 0.00625
-        
-        test_x = int(player.x + distance * math.cos(angle))
-        test_y = int(player.y + distance * math.sin(angle))
-        
-        if not utils.is_inside_map((test_x, test_y)):
-            return MAX_VIEW_DISTANCE
-            
-        if constants.MAP[test_y][test_x].is_impassible():
-            return distance
-            
-    return None
-
-def is_collision(x: float, y: float) -> bool:
-    """Check if a position would result in a collision.
+    # Calculate ray direction vector
+    ray_dir_x = math.cos(angle)
+    ray_dir_y = math.sin(angle)
     
-    Args:
-        x: X coordinate to check
-        y: Y coordinate to check
-        
-    Returns:
-        True if position would result in collision, False otherwise
-    """
-    grid_x, grid_y = int(x), int(y)
+    # Get player's current map position
+    map_x = int(player.x)
+    map_y = int(player.y)
     
-    if not utils.is_inside_map((grid_x, grid_y)):
-        return True
-    return constants.MAP[grid_y][grid_x].is_impassible()
+    # Calculate ray step and initial side distance
+    delta_dist_x = abs(1 / (ray_dir_x + 0.0001))
+    delta_dist_y = abs(1 / (ray_dir_y + 0.0001))
+    
+    if ray_dir_x < 0:
+        step_x = -1
+        side_dist_x = (player.x - map_x) * delta_dist_x
+    else:
+        step_x = 1
+        side_dist_x = (map_x + 1.0 - player.x) * delta_dist_x
+        
+    if ray_dir_y < 0:
+        step_y = -1
+        side_dist_y = (player.y - map_y) * delta_dist_y
+    else:
+        step_y = 1
+        side_dist_y = (map_y + 1.0 - player.y) * delta_dist_y
+    
+    # Perform DDA
+    hit = False
+    side = 0  # 0 for NS wall, 1 for EW wall
+    wall_type = None
+    
+    while not hit and map_x >= 0 and map_x < constants.MAP_DIMENSIONS and map_y >= 0 and map_y < constants.MAP_DIMENSIONS:
+        # Jump to next map square
+        if side_dist_x < side_dist_y:
+            side_dist_x += delta_dist_x
+            map_x += step_x
+            side = 0
+        else:
+            side_dist_y += delta_dist_y
+            map_y += step_y
+            side = 1
+            
+        # Check if ray has hit a wall
+        if map_x >= 0 and map_x < constants.MAP_DIMENSIONS and map_y >= 0 and map_y < constants.MAP_DIMENSIONS:
+            wall_type = constants.MAP[map_y][map_x]
+            if wall_type != constants.PosColor.EMPTY:
+                hit = True
+    
+    if not hit:
+        return MAX_VIEW_DISTANCE, constants.PosColor.LIGHTWALL  # Default to light wall if no hit
+        
+    # Calculate distance projected on camera direction
+    if side == 0:
+        perp_wall_dist = (map_x - player.x + (1 - step_x) / 2) / ray_dir_x
+    else:
+        perp_wall_dist = (map_y - player.y + (1 - step_y) / 2) / ray_dir_y
+        
+    return perp_wall_dist, wall_type
 
 def handle_movement(keys: set) -> None:
     """Handle player movement based on keyboard input.
@@ -434,6 +462,22 @@ def onKeyHold(keys: set) -> None:
     
     if 'space' in keys:
         shoot()
+
+def is_collision(x: float, y: float) -> bool:
+    """Check if a position would result in a collision.
+    
+    Args:
+        x: X coordinate to check
+        y: Y coordinate to check
+        
+    Returns:
+        True if position would result in collision, False otherwise
+    """
+    grid_x, grid_y = int(x), int(y)
+    
+    if not utils.is_inside_map((grid_x, grid_y)):
+        return True
+    return constants.MAP[grid_y][grid_x].is_impassible()
 
 if __name__ == '__main__':
     cmu_graphics.run()
